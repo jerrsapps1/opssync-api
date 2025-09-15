@@ -1,5 +1,5 @@
 import express from "express";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
 import dotenv from "dotenv";
 import healthRouter from "./routes/health";
 
@@ -8,23 +8,23 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// CORS — allow landing + app subdomain by default; ALLOWED_ORIGINS can override.
 const defaultOrigins = ["https://opssync.ai", "https://app.opssync.ai"];
 const allowed = (process.env.ALLOWED_ORIGINS || defaultOrigins.join(","))
   .split(",")
   .map(s => s.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // allow non-browser tools (no origin) and whitelisted origins
-      if (!origin || allowed.includes(origin)) return cb(null, true);
-      return cb(new Error("CORS blocked for origin: " + origin));
-    },
-    credentials: true
-  })
-);
+const corsOptions: CorsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin || allowed.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS blocked for origin: " + origin));
+  },
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 
 // Base ping
 app.get("/", (_req, res) => {
